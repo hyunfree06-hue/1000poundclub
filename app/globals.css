@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   1000 LB CLUB — design tokens
+   Raw, old-school forum look: dense tables, hairline borders, 13px base,
+   white background, #222 ink, one accent (#c0392b). No shadows, no gradients,
+   no big rounded cards. The only loud element is the tier badge.
+   ========================================================================== */
+
+:root {
+  --accent: #c0392b;
+  --ink: #222222;
+  --muted: #767676;
+  --hairline: #e5e5e5;
+  --bg: #ffffff;
+  --row-hover: #fafafa;
+}
+
+html {
+  font-size: 13px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* ------- reusable forum primitives ------- */
+
+@layer components {
+  /* Plain rectangular button */
+  .btn {
+    @apply inline-flex items-center justify-center border border-hairline bg-white px-3 py-1 text-base text-ink;
+    border-radius: 2px;
+  }
+  .btn:hover {
+    background: var(--row-hover);
+    text-decoration: none;
+  }
+  .btn-accent {
+    @apply border-accent bg-accent text-white;
+  }
+  .btn-accent:hover {
+    background: #a93226;
+  }
+
+  /* Dense forum table */
+  .board {
+    @apply w-full border-collapse text-base;
+  }
+  .board th {
+    @apply border-y border-hairline bg-[#f6f6f6] px-2 py-1 text-left font-normal text-muted;
+  }
+  .board td {
+    @apply border-b border-hairline px-2 py-0 align-middle;
+    height: 32px;
+  }
+  .board tbody tr:hover {
+    background: var(--row-hover);
+  }
+
+  /* Thin nav strip */
+  .navstrip a {
+    @apply text-ink;
+  }
+  .navstrip a:hover {
+    color: var(--accent);
+    text-decoration: none;
+  }
+}
