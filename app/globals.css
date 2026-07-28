@@ -82,3 +82,43 @@ a:hover {
     text-decoration: none;
   }
 }
+
+/* ------- rendered markdown ------- */
+.md-body p {
+  margin: 0 0 0.6em;
+}
+.md-body p:last-child {
+  margin-bottom: 0;
+}
+.md-body strong {
+  font-weight: 700;
+}
+.md-body em {
+  font-style: italic;
+}
+.md-code {
+  background: #f2f3f4;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 0 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.md-pre {
+  background: #f6f6f6;
+  border: 1px solid var(--hairline);
+  border-radius: 2px;
+  padding: 8px 10px;
+  overflow-x: auto;
+  margin: 0 0 0.6em;
+}
+.md-pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+.md-quote {
+  border-left: 3px solid var(--hairline);
+  margin: 0 0 0.6em;
+  padding: 2px 0 2px 10px;
+  color: var(--muted);
+}
