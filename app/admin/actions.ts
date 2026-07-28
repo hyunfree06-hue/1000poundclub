@@ -56,6 +56,37 @@ function toLb(value: number, unit: "lb" | "kg"): number {
   return Math.round(unit === "kg" ? kgToLb(value) : value);
 }
 
+// Delete the proof files from the private bucket the moment a verification is
+// reviewed, then null out the path columns so we keep no dangling reference and
+// the admin UI won't try to render a broken signed URL for reviewed rows.
+//
+// Storage failure is non-fatal: we log and continue. We still null the columns
+// (reviewed rows should never point at proofs), accepting a rare orphaned file
+// over ever blocking a review on a flaky storage call.
+async function purgeProofs(
+  admin: ReturnType<typeof createAdminClient>,
+  verificationId: string,
+  paths: (string | null)[],
+) {
+  const toRemove = paths.filter((p): p is string => !!p);
+  if (toRemove.length) {
+    const { error } = await admin.storage.from("proofs").remove(toRemove);
+    if (error) {
+      console.error(
+        `[admin] proof deletion failed for verification ${verificationId}: ${error.message}`,
+      );
+    }
+  }
+  await admin
+    .from("verifications")
+    .update({
+      squat_proof_path: null,
+      bench_proof_path: null,
+      deadlift_proof_path: null,
+    })
+    .eq("id", verificationId);
+}
+
 // Approve, optionally correcting the claimed numbers first. Edited values are
 // interpreted in the verification's submitted_unit.
 export async function approveVerification(
@@ -67,7 +98,9 @@ export async function approveVerification(
 
   const { data: v } = await admin
     .from("verifications")
-    .select("id, user_id, submitted_unit, squat, bench, deadlift, status")
+    .select(
+      "id, user_id, submitted_unit, squat, bench, deadlift, status, squat_proof_path, bench_proof_path, deadlift_proof_path",
+    )
     .eq("id", id)
     .maybeSingle();
   if (!v) return { error: "Not found." };
@@ -106,6 +139,13 @@ export async function approveVerification(
     })
     .eq("id", v.user_id);
 
+  // Proofs are no longer needed once approved — delete them and clear the refs.
+  await purgeProofs(admin, id, [
+    v.squat_proof_path as string | null,
+    v.bench_proof_path as string | null,
+    v.deadlift_proof_path as string | null,
+  ]);
+
   revalidatePath("/admin");
   revalidatePath("/leaderboard");
   return { ok: true, tier: getTier(squat_lb + bench_lb + deadlift_lb).name };
@@ -114,6 +154,14 @@ export async function approveVerification(
 export async function rejectVerification(id: string, note: string) {
   await requireAdmin();
   const admin = createAdminClient();
+
+  const { data: v } = await admin
+    .from("verifications")
+    .select("id, squat_proof_path, bench_proof_path, deadlift_proof_path")
+    .eq("id", id)
+    .maybeSingle();
+  if (!v) return { error: "Not found." };
+
   await admin
     .from("verifications")
     .update({
@@ -122,6 +170,14 @@ export async function rejectVerification(id: string, note: string) {
       reviewed_at: new Date().toISOString(),
     })
     .eq("id", id);
+
+  // Delete proofs on reject too, then clear the refs.
+  await purgeProofs(admin, id, [
+    v.squat_proof_path as string | null,
+    v.bench_proof_path as string | null,
+    v.deadlift_proof_path as string | null,
+  ]);
+
   revalidatePath("/admin");
   return { ok: true };
 }

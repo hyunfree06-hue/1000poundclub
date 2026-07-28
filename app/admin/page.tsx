@@ -94,20 +94,28 @@ async function VerificationsTab({
     } | null;
 
     const paths = [
-      { label: "Squat", path: v.squat_proof_path as string },
-      { label: "Bench", path: v.bench_proof_path as string },
-      { label: "Deadlift", path: v.deadlift_proof_path as string },
+      { label: "Squat", path: v.squat_proof_path as string | null },
+      { label: "Bench", path: v.bench_proof_path as string | null },
+      { label: "Deadlift", path: v.deadlift_proof_path as string | null },
     ];
-    // Signed URLs, 60-minute expiry, generated server-side.
-    const signed = await admin.storage
-      .from("proofs")
-      .createSignedUrls(paths.map((p) => p.path), 60 * 60);
+    const present = paths.filter(
+      (p): p is { label: string; path: string } => !!p.path,
+    );
+    // Reviewed rows have their proofs deleted; don't fetch signed URLs for them.
+    const proofsDeleted = present.length === 0;
 
-    const proofs = paths.map((p, i) => ({
-      label: p.label,
-      url: signed.data?.[i]?.signedUrl ?? null,
-      kind: mediaKind(p.path),
-    }));
+    let proofs: QueueRow["proofs"] = [];
+    if (!proofsDeleted) {
+      // Signed URLs, 60-minute expiry, generated server-side.
+      const signed = await admin.storage
+        .from("proofs")
+        .createSignedUrls(present.map((p) => p.path), 60 * 60);
+      proofs = present.map((p, i) => ({
+        label: p.label,
+        url: signed.data?.[i]?.signedUrl ?? null,
+        kind: mediaKind(p.path),
+      }));
+    }
 
     rows.push({
       id: v.id as string,
@@ -130,6 +138,7 @@ async function VerificationsTab({
       status: v.status as "pending" | "approved" | "rejected",
       created_at: v.created_at as string,
       proofs,
+      proofsDeleted,
     });
   }
 

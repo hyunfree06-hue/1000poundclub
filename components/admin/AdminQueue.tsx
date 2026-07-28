@@ -25,6 +25,8 @@ export interface QueueRow {
   status: "pending" | "approved" | "rejected";
   created_at: string;
   proofs: { label: string; url: string | null; kind: "image" | "video" }[];
+  // True once the verification has been reviewed and its proof files deleted.
+  proofsDeleted: boolean;
 }
 
 function lb(v: number, unit: "lb" | "kg") {
@@ -150,11 +152,17 @@ function Row({ row }: { row: QueueRow }) {
             </p>
           )}
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            {row.proofs.map((p) => (
-              <Proof key={p.label} p={p} />
-            ))}
-          </div>
+          {row.proofsDeleted ? (
+            <div className="mt-3 border border-hairline bg-[#fafafa] p-3 text-xs text-muted">
+              Proof deleted after review.
+            </div>
+          ) : (
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              {row.proofs.map((p) => (
+                <Proof key={p.label} p={p} />
+              ))}
+            </div>
+          )}
 
           {row.status === "pending" && (
             <div className="mt-3 flex flex-col gap-2">
