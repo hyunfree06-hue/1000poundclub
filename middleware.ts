@@ -1,10 +1,26 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { ADMIN_COOKIE, verifyAdminToken } from "@/lib/admin-session";
 
-// Refreshes the Supabase auth session on every request so Server Components
-// always see a valid session. The /admin/* route guard is layered on top of
-// this in a later build step (signed admin cookie check).
+// 1) Refreshes the Supabase auth session on every request.
+// 2) Guards all /admin/* routes (except /admin/login): a missing or invalid
+//    signed admin cookie is redirected to the login page.
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // ---- admin guard ----
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    const token = request.cookies.get(ADMIN_COOKIE)?.value;
+    const ok = await verifyAdminToken(token);
+    if (!ok) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // ---- supabase session refresh ----
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
